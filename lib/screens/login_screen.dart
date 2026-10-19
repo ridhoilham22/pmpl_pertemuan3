@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,27 +13,33 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
+  bool _isRegisterMode = false;
 
-  Future<void> _handleLogin() async {
-    setState(() => _isLoading = true);
-    final success = await Provider.of<AuthProvider>(
-      context,
-      listen: false,
-    ).login(_emailController.text, _passwordController.text);
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final success = _isRegisterMode
+        ? await auth.register(_emailController.text, _passwordController.text)
+        : await auth.login(_emailController.text, _passwordController.text);
+
     if (!mounted) return;
-    setState(() => _isLoading = false);
-    if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login Gagal! Password min 6 karakter.')),
-      );
+
+    if (!success && auth.errorMessage != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(auth.errorMessage!)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login Provider')),
+      appBar: AppBar(title: Text(_isRegisterMode ? 'Register' : 'Login')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -45,15 +52,16 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Selamat Datang',
+                _isRegisterMode ? 'Buat akun baru' : 'Selamat Datang',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 4),
               Text(
-                'Masuk untuk melihat daftar pengguna',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                _isRegisterMode
+                    ? 'Daftar untuk melihat pengguna'
+                    : 'Login untuk melihat pengguna',
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: Colors.grey[600]),
               ),
               const SizedBox(height: 24),
               Card(
@@ -92,28 +100,33 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: Consumer<AuthProvider>(
+                  builder: (context, auth, _) => ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    onPressed: auth.isLoading ? null : _handleSubmit,
+                    child: auth.isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(_isRegisterMode ? 'Register' : 'Login'),
                   ),
-                  onPressed: _isLoading ? null : _handleLogin,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Login'),
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Demo: email apa saja + password min 6 karakter',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+              TextButton(
+                onPressed: () =>
+                    setState(() => _isRegisterMode = !_isRegisterMode),
+                child: Text(
+                  _isRegisterMode
+                      ? 'Sudah punya akun? login'
+                      : 'Belum punya akun? Register',
+                ),
               ),
             ],
           ),

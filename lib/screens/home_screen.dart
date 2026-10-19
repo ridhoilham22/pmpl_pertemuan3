@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
 import '../providers/data_provider.dart';
 
@@ -20,7 +21,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _reload() async {
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final token = await Provider.of<AuthProvider>(context, listen: false).token;
+
+    if (!mounted) return;
+
     await Provider.of<DataProvider>(
       context,
       listen: false,
@@ -46,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
           switch (dataProvider.state) {
             case ViewState.loading:
               return const Center(child: CircularProgressIndicator());
+
             case ViewState.error:
               return Center(
                 child: Padding(
@@ -73,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               );
+
             case ViewState.empty:
               return const Center(
                 child: Column(
@@ -84,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               );
+
             case ViewState.loaded:
               return RefreshIndicator(
                 onRefresh: _reload,
@@ -92,6 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: dataProvider.users.length,
                   itemBuilder: (context, index) {
                     final user = dataProvider.users[index];
+
                     return Card(
                       margin: const EdgeInsets.symmetric(
                         vertical: 4,
@@ -109,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               );
+
             default:
               return const SizedBox.shrink();
           }
